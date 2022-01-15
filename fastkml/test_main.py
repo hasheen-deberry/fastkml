@@ -2624,15 +2624,15 @@ class GroundOverlayStringTestCase(unittest.TestCase):
 
 class LinkElementTestCase(unittest.TestCase):
     def setUp(self):
-        self.k = kml.Link(href="")
+        self.k = kml.Link(href="some_url")
 
     def test_view_refresh_time(self):
         self.k.view_refresh_time = 99
         self.assertEqual("99", self.k.view_refresh_time)
 
     def test_refresh_interval(self):
-        self.k.refresh_interval = 99
-        self.assertEqual("99", self.k.refresh_interval)
+        self.k.refresh_interval = 99.0
+        self.assertEqual(99.0, self.k.refresh_interval)
 
     def test_view_bound_scale_get_set(self):
         self.k.view_bound_scale = 99
@@ -2691,6 +2691,64 @@ class LinkElementTestCase(unittest.TestCase):
         self.assertEqual("BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth]", self.k.view_format)
 
 
+class LinkElementFromStringTestCase(unittest.TestCase):
+    def test_no_href_error(self):
+        link = kml.Link(href="some_url")
+        with self.assertRaises(ValueError):
+            link.from_element('<kml:Link xmlns:kml="http://www.opengis.net/kml/2.2">'
+                              "</kml:Link>")
+
+    def test_no_refresh_interval_time_view_bound_scale_default(self):
+        expected = kml.Link(href="some_url")
+
+        actual = kml.Link(href="some_href")
+        actual.from_string(
+            '<kml:Link xmlns:kml="http://www.opengis.net/kml/2.2">'
+            "<kml:href>http://www.github.com/fastkml</kml:href>"
+            "</kml:Link>"
+        )
+
+        self.assertEqual("http://www.github.com/fastkml", actual.href)
+        self.assertEqual(expected.refresh_interval, actual.refresh_interval)
+        self.assertEqual(expected.view_refresh_time, actual.view_refresh_time)
+        self.assertEqual(expected.view_bound_scale, actual.view_bound_scale)
+
+    def test_refresh_fields(self):
+        expected = kml.Link(href="some_url")
+        expected.refresh_interval = 99.0
+        expected.view_refresh_mode = "onStop"
+        expected.refresh_mode = "onExpire"
+
+        actual = kml.Link(href="some_href")
+        actual.from_string(
+            '<kml:Link xmlns:kml="http://www.opengis.net/kml/2.2">'
+            "<kml:href>some_href</kml:href>"
+            "<kml:refreshInterval>99</kml:refreshInterval>"
+            "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+            "<kml:refreshMode>onExpire</kml:refreshMode>"
+            "</kml:Link>"
+        )
+
+        self.assertEquals(expected.refresh_interval, actual.refresh_interval)
+        self.assertEqual(expected.view_refresh_mode, actual.view_refresh_mode)
+        self.assertEqual(expected.refresh_mode, actual.refresh_mode)
+
+    def test_view_format_bbox(self):
+        expected = kml.Link(href="some_href")
+        expected.view_refresh_mode = "onStop"
+
+        actual = kml.Link(href="some_href")
+        actual.from_string(
+            '<kml:Link xmlns:kml="http://www.opengis.net/kml/2.2">'
+            "<kml:href>some_href</kml:href>"            
+            "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+            "<kml:viewFormat>BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth]</kml:viewFormat>"
+            "</kml:Link>"
+        )
+
+        self.assertEqual(expected.view_format, actual.view_format)
+
+
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(BaseClassesTestCase))
@@ -2707,6 +2765,7 @@ def test_suite():
     suite.addTest(unittest.makeSuite(BaseOverlayTestCase))
     suite.addTest(unittest.makeSuite(GroundOverlayTestCase))
     suite.addTest(unittest.makeSuite(LinkElementTestCase))
+    suite.addTest(unittest.makeSuite(LinkElementFromStringTestCase))
     return suite
 
 

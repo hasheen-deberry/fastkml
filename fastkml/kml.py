@@ -1550,7 +1550,7 @@ class Link(_BaseObject):
     @refresh_interval.setter
     def refresh_interval(self, refresh_interval):
         if isinstance(refresh_interval, (int, float, str)):
-            self._refresh_interval = str(refresh_interval)
+            self._refresh_interval = float(refresh_interval)
         elif refresh_interval is None:
             self._refresh_interval = None
         else:
@@ -1611,7 +1611,7 @@ class Link(_BaseObject):
     def etree_element(self):
         element = super().etree_element()
         href_element = etree.SubElement(element, f"{self.ns}href")
-        href_element.text = self._href
+        href_element.text = self.href
 
         if self._refresh_mode is not None:
             refresh_mode_element = etree.SubElement(element, f"{self.ns}refreshMode")
@@ -1638,6 +1638,36 @@ class Link(_BaseObject):
             http_query_element.text = self._http_query
 
         return element
+
+    def from_element(self, element):
+        element_href = element.find(f"{self.ns}href")
+        if element_href is None or (isinstance(element_href, int) and element_href <= -1):
+            raise ValueError
+
+        self.href = element_href.text
+        element_refresh_mode = element.find(f"{self.ns}refreshMode")
+        if element_refresh_mode is not None:
+            self._refresh_mode = element_refresh_mode.text
+
+        element_refresh_interval = element.find(f"{self.ns}refreshInterval")
+        if element_refresh_interval is not None:
+            self._refresh_interval = float(element_refresh_interval.text)
+
+        element_view_refresh_mode = element.find(f"{self.ns}viewRefreshMode")
+        if element_view_refresh_mode is not None:
+            self._view_refresh_mode = element_view_refresh_mode.text
+
+        element_view_refresh_time = element.find(f"{self.ns}viewRefreshTime")
+        if element_view_refresh_time is not None:
+            self._view_refresh_time = float(element_view_refresh_time.text)
+
+        element_view_bound_scale = element.find(f"{self.ns}viewBoundScale")
+        if element_view_bound_scale is not None:
+            self._view_bound_scale = float(element_view_bound_scale.text)
+
+        element_http_query = element.find(f"{self.ns}httpQuery")
+        if element_http_query is not None:
+            self._http_query = element_http_query.text
 
 
 __all__ = [

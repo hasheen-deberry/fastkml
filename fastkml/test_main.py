@@ -45,13 +45,16 @@ class BaseClassesTestCase(unittest.TestCase):
         bo = base._BaseObject(id="id0")
         self.assertEqual(bo.id, "id0")
         self.assertEqual(bo.ns, config.KMLNS)
-        self.assertEqual(bo.target_id, None)
-        self.assertEqual(bo.__name__, None)
+        self.assertIsNone(bo.target_id)
+        self.assertIsNone(bo.__name__)
+        # self.assertEqual(bo.target_id, None)
+        # self.assertEqual(bo.__name__, None)
         bo.target_id = "target"
         self.assertEqual(bo.target_id, "target")
         bo.ns = ""
         bo.id = None
-        self.assertEqual(bo.id, None)
+        # self.assertEqual(bo.id, None)
+        self.assertIsNone(bo.id)
         self.assertEqual(bo.ns, "")
         self.assertRaises(NotImplementedError, bo.etree_element)
         element = etree.Element(config.KMLNS + "Base")
@@ -63,7 +66,8 @@ class BaseClassesTestCase(unittest.TestCase):
         bo.__name__ = "Base"
         bo.ns = config.KMLNS
         bo.from_element(element)
-        self.assertEqual(bo.id, None)
+        # self.assertEqual(bo.id, None)
+        self.assertIsNone(bo.id)
         self.assertEqual(bo.ns, config.KMLNS)
         self.assertFalse(bo.etree_element(), None)
         self.assertGreater(len(bo.to_string()), 1)
@@ -2729,7 +2733,7 @@ class LinkElementFromStringTestCase(unittest.TestCase):
             "</kml:Link>"
         )
 
-        self.assertEquals(expected.refresh_interval, actual.refresh_interval)
+        self.assertEqual(expected.refresh_interval, actual.refresh_interval)
         self.assertEqual(expected.view_refresh_mode, actual.view_refresh_mode)
         self.assertEqual(expected.refresh_mode, actual.refresh_mode)
 
@@ -2747,6 +2751,225 @@ class LinkElementFromStringTestCase(unittest.TestCase):
         )
 
         self.assertEqual(expected.view_format, actual.view_format)
+
+    def test_full_link_match(self):
+      actual = kml.Link(href="some_href")
+      actual.from_string('<kml:Link xmlns:kml="http://www.opengis.net/kml/2.2">'
+      "<kml:href>http://www.example.com/geotiff/NE/MergedReflectivityQComposite.kml</kml:href>"
+      "<kml:refreshMode>onInterval</kml:refreshMode>"
+      "<kml:refreshInterval>30</kml:refreshInterval>"
+      "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+      "<kml:viewRefreshTime>7</kml:viewRefreshTime>"
+      "<kml:viewFormat>BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth];CAMERA=\
+      [lookatLon],[lookatLat],[lookatRange],[lookatTilt],[lookatHeading];VIEW=\
+      [horizFov],[vertFov],[horizPixels],[vertPixels],[terrainEnabled]</kml:viewFormat>"
+      "</kml:Link>")
+
+      expected = kml.Link(href="http://www.example.com/geotiff/NE/MergedReflectivityQComposite.kml")
+      expected.refresh_mode = "onInterval"
+      expected.refresh_interval = 30.0
+      expected.view_refresh_mode = "onStop"
+      expected.view_refresh_time = 7.0
+      expected.view_format += ";CAMERA=\
+      [lookatLon],[lookatLat],[lookatRange],[lookatTilt],[lookatHeading];VIEW=\
+      [horizFov],[vertFov],[horizPixels],[vertPixels],[terrainEnabled]"
+
+      self.assertEqual(expected.to_string(), actual.to_string())
+
+
+class IconElementTestCase(unittest.TestCase):
+    def setUp(self):
+        self.k = kml.Icon(href="some_url")
+
+    def test_view_refresh_time(self):
+        self.k.view_refresh_time = 99
+        self.assertEqual("99", self.k.view_refresh_time)
+
+    def test_refresh_interval(self):
+        self.k.refresh_interval = 99.0
+        self.assertEqual(99.0, self.k.refresh_interval)
+
+    def test_view_bound_scale_get_set(self):
+        self.k.view_bound_scale = 99
+        self.assertEqual("99", self.k.view_bound_scale)
+
+    def test_refresh_mode_onInterval(self):
+        self.k.refresh_mode = "onInterval"
+        self.assertEqual("onInterval", self.k.refresh_mode)
+
+    def test_refresh_mode_onExpire(self):
+        self.k.refresh_mode = "onExpire"
+        self.assertEqual("onExpire", self.k.refresh_mode)
+
+    def test_refresh_mode_none_default(self):
+        self.k.refresh_mode = None
+        self.assertEqual("onChange", self.k.refresh_mode)
+
+    def test_refresh_mode_onChange(self):
+        self.k.refresh_mode = "onChange"
+        self.assertEqual("onChange", self.k.refresh_mode)
+
+    def test_refresh_mode_error(self):
+        with self.assertRaises(ValueError):
+            self.k.refresh_mode = object()
+
+    def test_view_refresh_mode_onStop(self):
+        self.k.view_refresh_mode = "onStop"
+        self.assertEqual("onStop", self.k.view_refresh_mode)
+
+    def test_view_refresh_mode_onRequest(self):
+        self.k.view_refresh_mode = "onRequest"
+        self.assertEqual("onRequest", self.k.view_refresh_mode)
+
+    def test_view_refresh_mode_never(self):
+        self.k.view_refresh_mode = "never"
+        self.assertEqual("never", self.k.view_refresh_mode)
+
+    def test_view_refresh_mode_onRegion(self):
+        self.k.view_refresh_mode = "onRegion"
+        self.assertEqual("onRegion", self.k.view_refresh_mode)
+
+    def test_view_refresh_mode_none_default(self):
+        self.k.view_refresh_mode = None
+        self.assertEqual("never", self.k.view_refresh_mode)
+
+    def test_view_refresh_mode_error(self):
+        with self.assertRaises(ValueError):
+            self.k.view_refresh_mode = object()
+
+    def test_view_format(self):
+        self.k.view_format = "foo"
+        self.assertEqual("foo", self.k.view_format)
+
+    def test_view_format_bbox(self):
+        self.k.view_refresh_mode = "onStop"
+        self.assertEqual("BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth]", self.k.view_format)
+
+    def test_palette_x(self):
+        self.k.x = 99
+        self.assertEqual(99, self.k.x)
+
+    def test_palette_y(self):
+        self.k.y = 99
+        self.assertEqual(99, self.k.y)
+
+    def test_palette_h(self):
+        self.k.h = 99
+        self.assertEqual(99, self.k.h)
+
+    def test_palette_w(self):
+        self.k.w = 99
+        self.assertEqual(99, self.k.w)
+
+
+class IconElementFromStringTestCase(unittest.TestCase):
+    def test_no_href_error(self):
+        link = kml.Icon(href="some_url")
+        with self.assertRaises(ValueError):
+            link.from_element('<kml:Icon xmlns:kml="http://www.opengis.net/kml/2.2">'
+                              "</kml:Icon>")
+
+    def test_no_refresh_interval_time_view_bound_scale_default(self):
+        expected = kml.Icon(href="some_url")
+
+        actual = kml.Icon(href="some_href")
+        actual.from_string(
+            '<kml:Icon xmlns:kml="http://www.opengis.net/kml/2.2">'
+            "<kml:href>http://www.github.com/fastkml</kml:href>"
+            "</kml:Icon>"
+        )
+
+        self.assertEqual("http://www.github.com/fastkml", actual.href)
+        self.assertEqual(expected.refresh_interval, actual.refresh_interval)
+        self.assertEqual(expected.view_refresh_time, actual.view_refresh_time)
+        self.assertEqual(expected.view_bound_scale, actual.view_bound_scale)
+
+    def test_refresh_fields(self):
+        expected = kml.Icon(href="some_url")
+        expected.refresh_interval = 99.0
+        expected.view_refresh_mode = "onStop"
+        expected.refresh_mode = "onExpire"
+
+        actual = kml.Icon(href="some_href")
+        actual.from_string(
+            '<kml:Icon xmlns:kml="http://www.opengis.net/kml/2.2">'
+            "<kml:href>some_href</kml:href>"
+            "<kml:refreshInterval>99</kml:refreshInterval>"
+            "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+            "<kml:refreshMode>onExpire</kml:refreshMode>"
+            "</kml:Icon>"
+        )
+
+        self.assertEqual(expected.refresh_interval, actual.refresh_interval)
+        self.assertEqual(expected.view_refresh_mode, actual.view_refresh_mode)
+        self.assertEqual(expected.refresh_mode, actual.refresh_mode)
+
+    def test_view_format_bbox(self):
+        expected = kml.Icon(href="some_href")
+        expected.view_refresh_mode = "onStop"
+
+        actual = kml.Icon(href="some_href")
+        actual.from_string(
+            '<kml:Icon xmlns:kml="http://www.opengis.net/kml/2.2">'
+            "<kml:href>some_href</kml:href>"            
+            "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+            "<kml:viewFormat>BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth]</kml:viewFormat>"
+            "</kml:Icon>"
+        )
+
+        self.assertEqual(expected.view_format, actual.view_format)
+
+    def test_full_icon_match(self):
+        actual = kml.Icon(href="some_href")
+        actual.from_string('<kml:Icon xmlns:kml="http://www.opengis.net/kml/2.2">'
+        "<kml:href>http://www.example.com/geotiff/NE/MergedReflectivityQComposite.kml</kml:href>"
+        "<kml:refreshMode>onInterval</kml:refreshMode>"
+        "<kml:refreshInterval>30</kml:refreshInterval>"
+        "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+        "<kml:viewRefreshTime>7</kml:viewRefreshTime>"
+        "<kml:viewFormat>BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth];CAMERA=\
+        [lookatLon],[lookatLat],[lookatRange],[lookatTilt],[lookatHeading];VIEW=\
+        [horizFov],[vertFov],[horizPixels],[vertPixels],[terrainEnabled]</kml:viewFormat>"
+        "</kml:Icon>")
+
+        expected = kml.Icon(href="http://www.example.com/geotiff/NE/MergedReflectivityQComposite.kml")
+        expected.refresh_mode = "onInterval"
+        expected.refresh_interval = 30.0
+        expected.view_refresh_mode = "onStop"
+        expected.view_refresh_time = 7.0
+        expected.view_format += ";CAMERA=\
+        [lookatLon],[lookatLat],[lookatRange],[lookatTilt],[lookatHeading];VIEW=\
+        [horizFov],[vertFov],[horizPixels],[vertPixels],[terrainEnabled]"
+
+        self.assertEqual(expected.to_string(), actual.to_string())
+
+    def test_palette_x_y_match(self):
+        actual = kml.Icon(href="some_href")
+        actual.from_string('<kml:Icon xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">'
+        "<kml:href>http://www.example.com/geotiff/NE/MergedReflectivityQComposite.kml</kml:href>"
+        "<kml:refreshMode>onInterval</kml:refreshMode>"
+        "<kml:refreshInterval>30</kml:refreshInterval>"
+        "<kml:viewRefreshMode>onStop</kml:viewRefreshMode>"
+        "<kml:viewRefreshTime>7</kml:viewRefreshTime>"
+        "<kml:viewFormat>BBOX=[bboxWest],[bboxSouth],[bboxEast],[bboxNorth]</kml:viewFormat>"
+        "<gx:x>25</gx:x>"
+        "<gx:y>0</gx:y>"
+        "<gx:h>10</gx:h>"
+        "<gx:w>10</gx:w>"
+        "</kml:Icon>")
+
+        expected = kml.Icon(href="http://www.example.com/geotiff/NE/MergedReflectivityQComposite.kml")
+        expected.refresh_mode = "onInterval"
+        expected.refresh_interval = 30.0
+        expected.view_refresh_mode = "onStop"
+        expected.view_refresh_time = 7.0
+        expected.h = 10
+        expected.w = 10
+        expected.x = 25
+        expected.y = 0
+
+        self.assertEqual(expected.to_string(), actual.to_string())
+
 
 
 def test_suite():
@@ -2766,6 +2989,8 @@ def test_suite():
     suite.addTest(unittest.makeSuite(GroundOverlayTestCase))
     suite.addTest(unittest.makeSuite(LinkElementTestCase))
     suite.addTest(unittest.makeSuite(LinkElementFromStringTestCase))
+    suite.addTest(unittest.makeSuite(IconElementTestCase))
+    suite.addTest(unittest.makeSuite(IconElementFromStringTestCase))
     return suite
 
 

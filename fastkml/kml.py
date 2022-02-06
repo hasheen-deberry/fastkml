@@ -41,7 +41,7 @@ import fastkml.gx as gx
 
 from .base import _BaseObject
 from .base import _XMLObject
-from .config import etree
+from .config import etree, GXNS
 from .geometry import Geometry
 from .styles import Style
 from .styles import StyleMap
@@ -1670,12 +1670,128 @@ class Link(_BaseObject):
             self._http_query = element_http_query.text
 
 
+class Icon(Link):
+    __name__ = "Icon"
+
+    gxns = None
+
+    def __init__(self, href=None, ns=None, id=None):
+        super().__init__(ns, id, href)
+        self.gxns = GXNS
+        self._x_coord = None
+        self._y_coord = None
+        self._width = None
+        self._height = None
+
+    @property
+    def x(self):
+        """
+        Horizontal (X) value. If the element containing this property specifies an icon palette,
+        these elements identify the offsets, in pixels, from the lower-left corner of the icon
+        palette. If no value is specified for x, the lower left corner of the icon palette
+        is assumed to be the lower-left corner of the icon to use.
+        """
+        return self._x_coord
+
+    @x.setter
+    def x(self, value):
+        if isinstance(value, (int, str, float)):
+            self._x_coord = int(value)
+        else:
+            raise ValueError
+
+    @property
+    def y(self):
+        """
+        Vertical (Y) value. If the element containing this property specifies an icon palette, 
+        these elements identify the offsets, in pixels, from the lower-left corner of the icon
+        palette. If no value is specified for y, the lower left corner of the icon palette
+        is assumed to be the lower-left corner of the icon to use.
+        """
+        return self._y_coord
+
+    @y.setter
+    def y(self, value):
+        if isinstance(value, (int, str, float)):
+            self._y_coord = int(value)
+        else:
+            raise ValueError
+
+    @property
+    def h(self):
+        """
+        If the element containing this property specifies an icon palette, this element
+        specifies the height, in pixels, of the icon to use.
+        """
+        return self._height
+
+    @h.setter
+    def h(self, value):
+        if isinstance(value, (int, str, float)):
+            self._height = int(value)
+        else:
+            raise ValueError
+
+    @property
+    def w(self):
+        """
+        If the element containing this property specifies an icon palette, this element
+        specifies the width, in pixels, of the icon to use.
+        """
+        return self._width
+
+    @w.setter
+    def w(self, value):
+        if isinstance(value, (int, str, float)):
+            self._width = int(value)
+
+    def etree_element(self):
+        element = super().etree_element()
+
+        if self.x is not None:
+            x_val = etree.SubElement(element, f"{self.gxns}x")
+            x_val.text = str(self.x)
+
+        if self.y is not None:
+            y_val = etree.SubElement(element, f"{self.gxns}y")
+            y_val.text = str(self.y)
+
+        if self.h is not None:
+            h_val = etree.SubElement(element, f"{self.gxns}h")
+            h_val.text = str(self.h)
+
+        if self.w is not None:
+            w_val = etree.SubElement(element, f"{self.gxns}w")
+            w_val.text = str(self.w)
+
+        return element
+
+    def from_element(self, element):
+        super().from_element(element)
+        element_palette_x = element.find(f"{self.gxns}x")
+        if element_palette_x is not None:
+            self._x_coord = int(element_palette_x.text)
+
+        element_palette_y = element.find(f"{self.gxns}y")
+        if element_palette_y is not None:
+            self._y_coord = int(element_palette_y.text)
+
+        element_palette_h = element.find(f"{self.gxns}h")
+        if element_palette_h is not None:
+            self._height = int(element_palette_h.text)
+
+        element_palette_w = element.find(f"{self.gxns}w")
+        if element_palette_w is not None:
+            self._width = int(element_palette_w.text)
+
+
 __all__ = [
     "Data",
     "Document",
     "ExtendedData",
     "Folder",
     "GroundOverlay",
+    "Icon",
     "KML",
     "Link",
     "Placemark",
